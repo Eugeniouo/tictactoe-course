@@ -9,6 +9,10 @@ add_executable(test_stats test_stats.cpp)
 target_link_libraries(test_stats tttplayer)
 add_test(NAME test_player_stats COMMAND ./test_stats)
 
+add_executable(test_search_board test_search_board.cpp)
+target_link_libraries(test_search_board tttplayer)
+add_test(NAME test_search_board COMMAND ./test_search_board)
+
 # Targets that require full or prebuilt tttcore
 if((BUILD_TTTCORE STREQUAL "FULL") OR (BUILD_TTTCORE STREQUAL "PREBUILT"))
   # Baseline tests
