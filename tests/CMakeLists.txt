@@ -1,5 +1,19 @@
 cmake_minimum_required(VERSION 3.20.0)
 
+include(FetchContent)
+
+if(NOT TARGET GTest::gtest_main)
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+  FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP FALSE
+  )
+
+  FetchContent_MakeAvailable(googletest)
+endif()
+
 # Always built targets (no dependency on BUILD_TTTCORE)
 add_executable(test_my_player test_my_player.cpp)
 target_link_libraries(test_my_player tttplayer)
@@ -10,8 +24,8 @@ target_link_libraries(test_stats tttplayer)
 add_test(NAME test_player_stats COMMAND ./test_stats)
 
 add_executable(test_search_board test_search_board.cpp)
-target_link_libraries(test_search_board tttplayer)
-add_test(NAME test_search_board COMMAND ./test_search_board)
+target_link_libraries(test_search_board tttplayer GTest::gtest_main)
+add_test(NAME test_search_board COMMAND test_search_board)
 
 # Targets that require full or prebuilt tttcore
 if((BUILD_TTTCORE STREQUAL "FULL") OR (BUILD_TTTCORE STREQUAL "PREBUILT"))
