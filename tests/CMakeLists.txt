@@ -43,6 +43,10 @@ add_executable(test_instant_move_checker test_instant_move_checker.cpp)
 target_link_libraries(test_instant_move_checker tttplayer GTest::gtest_main)
 add_test(NAME test_instant_move_checker COMMAND test_instant_move_checker)
 
+add_executable(test_move_ordering test_move_ordering.cpp)
+target_link_libraries(test_move_ordering tttplayer GTest::gtest_main)
+add_test(NAME test_move_ordering COMMAND test_move_ordering)
+
 # Targets that require full or prebuilt tttcore
 if((BUILD_TTTCORE STREQUAL "FULL") OR (BUILD_TTTCORE STREQUAL "PREBUILT"))
   # Baseline tests

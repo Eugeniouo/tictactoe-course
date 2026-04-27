@@ -15,6 +15,7 @@
 #include "my_player.hpp"
 #include "instant_move_checker.hpp"
 #include "move_generator.hpp"
+#include "move_ordering.hpp"
 #include "negamax_search.hpp"
 #include "search_board.hpp"
 
@@ -47,7 +48,8 @@ namespace ttt::my_player
       return result.best_move;
     }
 
-    const MoveList fallback_moves = generate_candidate_moves(board);
+    MoveList fallback_moves = generate_candidate_moves(board);
+    order_candidate_moves(board, fallback_moves);
 
     if (!fallback_moves.empty())
     {

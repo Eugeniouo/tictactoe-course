@@ -54,6 +54,7 @@ set(player_src
   src/player/instant_move_checker.cpp
   src/player/position_evaluator.cpp
   src/player/negamax_search.cpp
+  src/player/move_ordering.cpp
 )
 add_library(tttplayer STATIC ${player_src})
 target_link_libraries(tttplayer ${TTTCORE_LIB})
