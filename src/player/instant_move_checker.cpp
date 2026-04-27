@@ -98,7 +98,7 @@ namespace ttt::my_player
      * не могли повредить исходное состояние, с которым продолжит работать
      * остальная логика выбора хода.
      */
-    InstantMoveResult find_instant_move(SearchBoard board)
+    InstantMoveResult find_instant_move(SearchBoard &board)
     {
         const game::Sign self = board.current_player();
         if (self != game::Sign::X && self != game::Sign::O)
@@ -157,8 +157,10 @@ namespace ttt::my_player
             return {*force_move, InstantMoveKind::FORCE_LAST_MOVE};
         }
 
-        std::optional<game::Point> block_move;
-        bool opponent_has_forcing_reply = false;
+        if (!has_decisive_reply(board, opp))
+        {
+            return {};
+        }
 
         for (const game::Point &move : root_moves)
         {
@@ -168,19 +170,10 @@ namespace ttt::my_player
 
             if (threat_remains)
             {
-                opponent_has_forcing_reply = true;
                 continue;
             }
 
-            if (!block_move)
-            {
-                block_move = move;
-            }
-        }
-
-        if (opponent_has_forcing_reply && block_move)
-        {
-            return {*block_move, InstantMoveKind::BLOCK};
+            return {move, InstantMoveKind::BLOCK};
         }
 
         return {};

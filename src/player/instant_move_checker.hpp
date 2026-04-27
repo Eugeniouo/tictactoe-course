@@ -55,5 +55,5 @@ namespace ttt::my_player
      * Проверка опирается на metadata позиции (`game_status`, `winner`),
      * а не только на факт наличия five на сырой доске.
      */
-    InstantMoveResult find_instant_move(SearchBoard board);
+    InstantMoveResult find_instant_move(SearchBoard &board);
 } // namespace ttt::my_player

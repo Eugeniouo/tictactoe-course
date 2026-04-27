@@ -35,12 +35,12 @@ namespace ttt::my_player
         m_move_number = state.get_move_no();
         m_max_move_count = state.get_opts().max_moves;
 
+        int index = 0;
         for (int y = 0; y < kBoardHeight; ++y)
         {
             for (int x = 0; x < kBoardWidth; ++x)
             {
-                m_cells[to_linear_index(x, y)] =
-                    cell_from_game_sign(state.get_value(x, y));
+                m_cells[index++] = cell_from_game_sign(state.get_value(x, y));
             }
         }
     }
@@ -54,48 +54,6 @@ namespace ttt::my_player
      *
      * @note Выход за границы трактуется как WALL.
      */
-    SearchBoard::Cell SearchBoard::get_cell(int x, int y) const
-    {
-        if (!is_within_board(x, y))
-        {
-            return Cell::WALL;
-        }
-
-        return m_cells[to_linear_index(x, y)];
-    }
-
-    void SearchBoard::set_cell(int x, int y, Cell cell)
-    {
-        assert(is_within_board(x, y));
-        m_cells[to_linear_index(x, y)] = cell;
-    }
-
-    bool SearchBoard::is_cell_empty(int x, int y) const
-    {
-        return get_cell(x, y) == Cell::EMPTY;
-    }
-
-    bool SearchBoard::is_wall_cell(int x, int y) const
-    {
-        return get_cell(x, y) == Cell::WALL;
-    }
-
-    bool SearchBoard::contains_stone(int x, int y) const
-    {
-        const Cell cell = get_cell(x, y);
-        return cell == Cell::X || cell == Cell::O;
-    }
-
-    bool SearchBoard::contains_my_stone(int x, int y) const
-    {
-        return get_cell(x, y) == cell_from_game_sign(m_my_sign);
-    }
-
-    bool SearchBoard::contains_opponent_stone(int x, int y) const
-    {
-        return get_cell(x, y) == cell_from_game_sign(m_opponent_sign);
-    }
-
     /**
      * @brief Применяет ход к внутренней доске и сохраняет данные для отката.
      *
@@ -154,51 +112,6 @@ namespace ttt::my_player
      * @param sign Знак из ttt::game::Sign.
      * @return Cell значение внутреннего enum Cell.
      */
-    SearchBoard::Cell SearchBoard::cell_from_game_sign(game::Sign sign)
-    {
-        switch (sign)
-        {
-        case game::Sign::X:
-            return Cell::X;
-        case game::Sign::O:
-            return Cell::O;
-        case game::Sign::WALL:
-            return Cell::WALL;
-        case game::Sign::NONE:
-        default:
-            return Cell::EMPTY;
-        }
-    }
-
-    game::Sign SearchBoard::game_sign_from_cell(Cell cell)
-    {
-        switch (cell)
-        {
-        case Cell::X:
-            return game::Sign::X;
-        case Cell::O:
-            return game::Sign::O;
-        case Cell::WALL:
-            return game::Sign::WALL;
-        case Cell::EMPTY:
-        default:
-            return game::Sign::NONE;
-        }
-    }
-
-    game::Sign SearchBoard::opposite_player_sign(game::Sign sign)
-    {
-        switch (sign)
-        {
-        case game::Sign::X:
-            return game::Sign::O;
-        case game::Sign::O:
-            return game::Sign::X;
-        default:
-            return game::Sign::NONE;
-        }
-    }
-
     /**
      * @brief Считает длину непрерывной цепочки камней в одном направлении.
      *
@@ -218,7 +131,7 @@ namespace ttt::my_player
         int x = start_x + dx;
         int y = start_y + dy;
 
-        while (get_cell(x, y) == target_cell)
+        while (is_within_board(x, y) && m_cells[to_linear_index(x, y)] == target_cell)
         {
             ++count;
             x += dx;
