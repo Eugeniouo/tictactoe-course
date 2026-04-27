@@ -28,5 +28,5 @@ namespace ttt::my_player
      * @note
      * MyPlayer создает SearchBoard, вызывает эту функцию и получает ответ.
      */
-    SearchResult find_best_move(SearchBoard board, int depth);
+    SearchResult find_best_move(SearchBoard &board, int depth);
 }

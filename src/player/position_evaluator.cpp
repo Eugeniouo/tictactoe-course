@@ -1,5 +1,5 @@
 #include "position_evaluator.hpp"
-#include <string>
+#include <array>
 #include <string_view>
 
 namespace ttt::my_player
@@ -7,6 +7,11 @@ namespace ttt::my_player
     namespace
     {
         using Cell = SearchBoard::Cell;
+        constexpr std::size_t kMaxLineBufferSize =
+            static_cast<std::size_t>((SearchBoard::kBoardWidth > SearchBoard::kBoardHeight
+                                          ? SearchBoard::kBoardWidth
+                                          : SearchBoard::kBoardHeight) +
+                                     2);
 
         /**
          * @brief Проверяет, является ли знак игровым камнем одного из игроков.
@@ -33,13 +38,32 @@ namespace ttt::my_player
          */
         int count_occurrences(std::string_view haystack, std::string_view needle)
         {
-            int count = 0;
-            for (std::size_t pos = 0;
-                 (pos = haystack.find(needle, pos)) != std::string_view::npos;
-                 ++pos)
+            if (needle.empty() || haystack.size() < needle.size())
             {
-                ++count;
+                return 0;
             }
+
+            int count = 0;
+            const std::size_t last_start = haystack.size() - needle.size();
+            for (std::size_t pos = 0; pos <= last_start; ++pos)
+            {
+                if (haystack[pos] != needle.front())
+                {
+                    continue;
+                }
+
+                std::size_t offset = 1;
+                while (offset < needle.size() && haystack[pos + offset] == needle[offset])
+                {
+                    ++offset;
+                }
+
+                if (offset == needle.size())
+                {
+                    ++count;
+                }
+            }
+
             return count;
         }
 
@@ -63,29 +87,31 @@ namespace ttt::my_player
          * С обеих сторон добавляются символы "#", чтобы упростить
          * определение открытых и закрытых паттернов.
          */
-        void build_line(
+        std::string_view build_line(
             const SearchBoard &board,
             int sx, int sy, int dx, int dy,
             game::Sign sign,
-            std::string &out)
+            std::array<char, kMaxLineBufferSize> &out)
 
         {
             const Cell own = SearchBoard::cell_from_game_sign(sign);
-            out.clear();
-            out.push_back('#');
+            std::size_t length = 0;
+            out[length++] = '#';
             for (int x = sx, y = sy;
                  SearchBoard::is_within_board(x, y);
                  x += dx, y += dy)
             {
                 const Cell c = board.get_cell(x, y);
                 if (c == own)
-                    out.push_back('X');
+                    out[length++] = 'X';
                 else if (c == Cell::EMPTY)
-                    out.push_back('.');
+                    out[length++] = '.';
                 else
-                    out.push_back('#');
+                    out[length++] = '#';
             }
-            out.push_back('#');
+            out[length++] = '#';
+
+            return std::string_view(out.data(), length);
         }
 
         /**
@@ -218,12 +244,12 @@ namespace ttt::my_player
             if (!is_player_sign(sign))
                 return counts;
 
-            std::string line;
-            line.reserve(SearchBoard::kBoardWidth + 2);
+            std::array<char, kMaxLineBufferSize> line_buffer{};
 
             const auto process = [&](int sx, int sy, int dx, int dy)
             {
-                build_line(board, sx, sy, dx, dy, sign, line);
+                const std::string_view line =
+                    build_line(board, sx, sy, dx, dy, sign, line_buffer);
                 if (line.size() < 4)
                     return;
                 analyze_run_patterns(line, counts);
