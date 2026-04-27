@@ -39,6 +39,10 @@ add_executable(test_negamax_search test_negamax_search.cpp)
 target_link_libraries(test_negamax_search tttplayer GTest::gtest_main)
 add_test(NAME test_negamax_search COMMAND test_negamax_search)
 
+add_executable(test_instant_move_checker test_instant_move_checker.cpp)
+target_link_libraries(test_instant_move_checker tttplayer GTest::gtest_main)
+add_test(NAME test_instant_move_checker COMMAND test_instant_move_checker)
+
 # Targets that require full or prebuilt tttcore
 if((BUILD_TTTCORE STREQUAL "FULL") OR (BUILD_TTTCORE STREQUAL "PREBUILT"))
   # Baseline tests
