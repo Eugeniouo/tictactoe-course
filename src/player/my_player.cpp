@@ -1,38 +1,50 @@
+/**
+ * @brief оркестрация хода игрока поверх основных модулей
+ * 
+ * @details
+ * MyPlayer:
+ *  - Получает состояние из движка
+ *  - Строит SearchBoard
+ *  - Запускает negamax_search
+ *  - Возвращает лучший найденный ход
+ */
+
 #include "my_player.hpp"
-#include <cstdlib>
+#include "move_generator.hpp"
+#include "negamax_search.hpp"
+#include "search_board.hpp"
 
-namespace ttt::my_player {
+namespace ttt::my_player
+{
 
-void MyPlayer::set_sign(Sign sign) { m_sign = sign; }
-const char *MyPlayer::get_name() const { return m_name; }
-
-Point MyPlayer::make_move(const State &state) {
-  Point result;
-  for (int n_attempt = 0; n_attempt < 50; ++n_attempt) {
-    result.x = std::rand() % state.get_opts().cols;
-    result.y = std::rand() % state.get_opts().rows;
-    if (state.get_value(result.x, result.y) != Sign::NONE) {
-      --n_attempt;
-      continue;
-    }
-    bool has_neighbors = false;
-    for (int dx = -1; dx <= 1; ++dx) {
-      for (int dy = -1; dy <= 1; ++dy) {
-        if (dx == 0 && dy == 0)
-          continue;
-        const Sign val = state.get_value(result.x + dx, result.y + dy);
-        if (val == Sign::X || val == Sign::O) {
-          has_neighbors = true;
-          break;
-        }
-      }
-      if (has_neighbors)
-        break;
-    }
-    if (has_neighbors)
-      break;
+  void MyPlayer::set_sign(Sign sign)
+  {
+    m_sign = sign;
   }
-  return result;
-}
+
+  const char *MyPlayer::get_name() const
+  {
+    return m_name;
+  }
+
+  Point MyPlayer::make_move(const State &state)
+  {
+    SearchBoard board(state, m_sign);
+
+    const SearchResult result = find_best_move(board, kSearchDepth);
+    if (SearchBoard::is_within_board(result.best_move.x, result.best_move.y))
+    {
+      return result.best_move;
+    }
+
+    const MoveList fallback_moves = generate_candidate_moves(board);
+
+    if (!fallback_moves.empty())
+    {
+      return fallback_moves.front();
+    }
+
+    return Point{0, 0};
+  }
 
 }; // namespace ttt::my_player
