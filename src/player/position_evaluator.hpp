@@ -7,7 +7,7 @@ namespace ttt::my_player
 {
     using Score = std::int64_t;
 
-    inline constexpr Score kTerminalWinScore = 4'000'000'000LL;
+    inline constexpr Score kTerminalWinScore = 1'000'000'000'000LL;
     inline constexpr Score kFive = 1'000'000'000LL;
     inline constexpr Score kOpenFour = 10'000'000LL;
     inline constexpr Score kDoubleFourBonus = 5'000'000LL;
@@ -17,9 +17,9 @@ namespace ttt::my_player
     inline constexpr Score kBrokenThree = 40'000LL;
     inline constexpr Score kSimpleThree = 10'000LL;
     inline constexpr Score kDoubleOpenTwoBonus = 2'000LL;
-    inline constexpr Score kOpenTwo = 1'000LL;
-    inline constexpr Score kBrokenTwo = 300LL;
-    inline constexpr Score kClosedTwo = 100LL;
+    inline constexpr Score kOpenTwo = 500LL;
+    inline constexpr Score kBrokenTwo = 100LL;
+    inline constexpr Score kClosedTwo = 10LL;
 
     /**
      * @brief Количество обнаруженных шаблонов каждого типа для одной стороны.
