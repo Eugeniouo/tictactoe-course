@@ -81,7 +81,7 @@ namespace ttt::my_player
         }
     }
 
-    SearchResult find_best_move(SearchBoard &board, int depth)
+    SearchResult find_best_move(SearchBoard board, int depth)
     {
         SearchResult result{};
 

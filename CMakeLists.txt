@@ -51,7 +51,6 @@ set(player_src
   src/player/my_observer.cpp
   src/player/search_board.cpp
   src/player/move_generator.cpp
-  src/player/instant_move_checker.cpp
   src/player/position_evaluator.cpp
   src/player/negamax_search.cpp
 )

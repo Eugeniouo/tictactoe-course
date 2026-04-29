@@ -1,5 +1,4 @@
 build/*
-build-wsl/*
 .cache/*
 **/.DS_Store
 libs/lib*

@@ -1,19 +1,15 @@
 /**
  * @brief оркестрация хода игрока поверх основных модулей
- *
+ * 
  * @details
  * MyPlayer:
  *  - Получает состояние из движка
  *  - Строит SearchBoard
- *  - Сначала проверяет немедленные тактические ходы
- *  - Затем, если они не найдены, запускает negamax_search
+ *  - Запускает negamax_search
  *  - Возвращает лучший найденный ход
- * ./build-wsl/tests/test_stats_vs_baseline - easy bot 100 игр
- * ./build-wsl/tests/test_with_baseline
  */
 
 #include "my_player.hpp"
-#include "instant_move_checker.hpp"
 #include "move_generator.hpp"
 #include "negamax_search.hpp"
 #include "search_board.hpp"
@@ -34,12 +30,6 @@ namespace ttt::my_player
   Point MyPlayer::make_move(const State &state)
   {
     SearchBoard board(state, m_sign);
-
-    const InstantMoveResult instant = find_instant_move(board);
-    if (SearchBoard::is_within_board(instant.move.x, instant.move.y))
-    {
-      return instant.move;
-    }
 
     const SearchResult result = find_best_move(board, kSearchDepth);
     if (SearchBoard::is_within_board(result.best_move.x, result.best_move.y))

@@ -10,6 +10,11 @@ namespace ttt::my_player
 
         constexpr int kCandidatRadius = 2;
 
+        bool is_candidate_cell(const SearchBoard &board, int x, int y)
+        {
+            return SearchBoard::is_within_board(x, y) && board.is_cell_empty(x, y);
+        }
+
         /**
          * @brief Находит дебютный fallback-ход, ближайший к центру доски.
          *
@@ -34,9 +39,9 @@ namespace ttt::my_player
             game::Point best{-1, -1};
             int best_distance = std::numeric_limits<int>::max(); // максимальный возможнный int
 
-            for (int y = 0; y < SearchBoard::kBoardHeight; ++y)
+            for (int x = 0; x < SearchBoard::kBoardWidth; ++x)
             {
-                for (int x = 0; x < SearchBoard::kBoardWidth; ++x)
+                for (int y = 0; y < SearchBoard::kBoardHeight; ++y)
                 {
                     if (!board.is_cell_empty(x, y))
                     {
@@ -87,16 +92,14 @@ namespace ttt::my_player
     MoveList generate_candidate_moves(const SearchBoard &board)
     {
         MoveList moves;
-        moves.reserve(SearchBoard::kBoardCellCount);
         std::array<bool, SearchBoard::kBoardCellCount> already_added{};
         bool has_stone = false;
 
-        for (int y = 0; y < SearchBoard::kBoardHeight; ++y)
+        for (int x = 0; x < SearchBoard::kBoardWidth; ++x)
         {
-            for (int x = 0; x < SearchBoard::kBoardWidth; ++x)
+            for (int y = 0; y < SearchBoard::kBoardHeight; ++y)
             {
-                const SearchBoard::Cell cell = board.get_cell(x, y);
-                if (cell != SearchBoard::Cell::X && cell != SearchBoard::Cell::O)
+                if (!board.contains_stone(x, y))
                 {
                     continue;
                 }
@@ -110,8 +113,7 @@ namespace ttt::my_player
                         const int nx = x + dx;
                         const int ny = y + dy;
 
-                        if (!SearchBoard::is_within_board(nx, ny) ||
-                            board.get_cell(nx, ny) != SearchBoard::Cell::EMPTY)
+                        if (!is_candidate_cell(board, nx, ny))
                         {
                             continue;
                         }

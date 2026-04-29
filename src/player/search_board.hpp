@@ -3,7 +3,6 @@
 #include "core/game.hpp"
 
 #include <array>
-#include <cassert>
 #include <cstdint>
 
 namespace ttt::my_player
@@ -53,47 +52,14 @@ namespace ttt::my_player
       return y * kBoardWidth + x;
     }
 
-    Cell get_cell(int x, int y) const
-    {
-      if (!is_within_board(x, y))
-      {
-        return Cell::WALL;
-      }
+    Cell get_cell(int x, int y) const;
+    void set_cell(int x, int y, Cell cell);
 
-      return m_cells[to_linear_index(x, y)];
-    }
-
-    void set_cell(int x, int y, Cell cell)
-    {
-      assert(is_within_board(x, y));
-      m_cells[to_linear_index(x, y)] = cell;
-    }
-
-    bool is_cell_empty(int x, int y) const
-    {
-      return get_cell(x, y) == Cell::EMPTY;
-    }
-
-    bool is_wall_cell(int x, int y) const
-    {
-      return get_cell(x, y) == Cell::WALL;
-    }
-
-    bool contains_stone(int x, int y) const
-    {
-      const Cell cell = get_cell(x, y);
-      return cell == Cell::X || cell == Cell::O;
-    }
-
-    bool contains_my_stone(int x, int y) const
-    {
-      return get_cell(x, y) == cell_from_game_sign(m_my_sign);
-    }
-
-    bool contains_opponent_stone(int x, int y) const
-    {
-      return get_cell(x, y) == cell_from_game_sign(m_opponent_sign);
-    }
+    bool is_cell_empty(int x, int y) const;
+    bool is_wall_cell(int x, int y) const;
+    bool contains_stone(int x, int y) const;
+    bool contains_my_stone(int x, int y) const;
+    bool contains_opponent_stone(int x, int y) const;
     bool has_five_from(int x, int y, game::Sign sign) const;
 
     game::Sign my_sign() const { return m_my_sign; }
@@ -107,50 +73,9 @@ namespace ttt::my_player
     UndoInfo apply_move(int x, int y, game::Sign sign);
     void undo_move(const UndoInfo &undo);
 
-    static constexpr Cell cell_from_game_sign(game::Sign sign)
-    {
-      switch (sign)
-      {
-      case game::Sign::X:
-        return Cell::X;
-      case game::Sign::O:
-        return Cell::O;
-      case game::Sign::WALL:
-        return Cell::WALL;
-      case game::Sign::NONE:
-      default:
-        return Cell::EMPTY;
-      }
-    }
-
-    static constexpr game::Sign game_sign_from_cell(Cell cell)
-    {
-      switch (cell)
-      {
-      case Cell::X:
-        return game::Sign::X;
-      case Cell::O:
-        return game::Sign::O;
-      case Cell::WALL:
-        return game::Sign::WALL;
-      case Cell::EMPTY:
-      default:
-        return game::Sign::NONE;
-      }
-    }
-
-    static constexpr game::Sign opposite_player_sign(game::Sign sign)
-    {
-      switch (sign)
-      {
-      case game::Sign::X:
-        return game::Sign::O;
-      case game::Sign::O:
-        return game::Sign::X;
-      default:
-        return game::Sign::NONE;
-      }
-    }
+    static Cell cell_from_game_sign(game::Sign sign);
+    static game::Sign game_sign_from_cell(Cell cell);
+    static game::Sign opposite_player_sign(game::Sign sign);
 
   private:
     int count_stones_in_direction(int start_x, int start_y, int dx, int dy, Cell target_cell) const;

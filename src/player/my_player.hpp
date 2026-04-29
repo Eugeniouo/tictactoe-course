@@ -16,7 +16,7 @@ namespace ttt::my_player
     Sign m_sign = Sign::NONE;
     const char *m_name;
 
-    static constexpr int kSearchDepth = 1;
+    static constexpr int kSearchDepth = 2;
 
   public:
     MyPlayer(const char *name) : m_sign(Sign::NONE), m_name(name) {}
