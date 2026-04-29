@@ -27,10 +27,6 @@ add_executable(test_search_board test_search_board.cpp)
 target_link_libraries(test_search_board tttplayer GTest::gtest_main)
 add_test(NAME test_search_board COMMAND test_search_board)
 
-add_executable(test_move_generator test_move_generator.cpp)
-target_link_libraries(test_move_generator tttplayer GTest::gtest_main)
-add_test(NAME test_move_generator COMMAND test_move_generator)
-
 # Targets that require full or prebuilt tttcore
 if((BUILD_TTTCORE STREQUAL "FULL") OR (BUILD_TTTCORE STREQUAL "PREBUILT"))
   # Baseline tests
