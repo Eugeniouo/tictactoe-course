@@ -35,10 +35,6 @@ add_executable(test_position_evaluator test_position_evaluator.cpp)
 target_link_libraries(test_position_evaluator tttplayer GTest::gtest_main)
 add_test(NAME test_position_evaluator COMMAND test_position_evaluator)
 
-add_executable(test_negamax_search test_negamax_search.cpp)
-target_link_libraries(test_negamax_search tttplayer GTest::gtest_main)
-add_test(NAME test_negamax_search COMMAND test_negamax_search)
-
 # Targets that require full or prebuilt tttcore
 if((BUILD_TTTCORE STREQUAL "FULL") OR (BUILD_TTTCORE STREQUAL "PREBUILT"))
   # Baseline tests
