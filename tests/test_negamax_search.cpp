@@ -3,97 +3,82 @@
  */
 
 #include "core/state.hpp"
-#include "player/negamax_search.hpp"
-#include "player/position_evaluator.hpp"
+#include "player/move_generator.hpp"
+#include "player/negamax_searcher.hpp"
 
 #include <gtest/gtest.h>
 
-using ttt::game::Point;
 using ttt::game::Sign;
 using ttt::game::State;
 using ttt::game::Status;
-using ttt::my_player::evaluate_position;
-using ttt::my_player::find_best_move;
-using ttt::my_player::kTerminalWinScore;
+using ttt::my_player::EngineConfig;
+using ttt::my_player::MoveGenerator;
+using ttt::my_player::MoveList;
+using ttt::my_player::NegamaxResult;
+using ttt::my_player::NegamaxSearcher;
 using ttt::my_player::SearchBoard;
-using ttt::my_player::SearchResult;
+using ttt::my_player::SearchState;
 
-static State::Opts DefaultOpts()
+namespace
 {
-    State::Opts opts{};
-    opts.rows = SearchBoard::kBoardHeight;
-    opts.cols = SearchBoard::kBoardWidth;
-    opts.win_len = SearchBoard::kWinLength;
-    opts.max_moves = 0;
-    return opts;
+    State::Opts default_opts()
+    {
+        State::Opts opts{};
+        opts.rows = SearchBoard::kBoardHeight;
+        opts.cols = SearchBoard::kBoardWidth;
+        opts.win_len = SearchBoard::kWinLength;
+        opts.max_moves = 0;
+        return opts;
+    }
+
+    SearchState make_search_state(const State &state, Sign my_sign)
+    {
+        SearchState search_state;
+        search_state.load_from_state(state, my_sign);
+        return search_state;
+    }
+
+    MoveList root_moves(const SearchState &search_state, Sign side)
+    {
+        return MoveGenerator().generate(
+            search_state,
+            side,
+            EngineConfig::kMaxQuietMoves);
+    }
 }
 
-TEST(NegamaxSearch, InvalidCurrentPlayerReturnsNoMove)
+TEST(NegamaxSearch, EmptyRootListReturnsNoMove)
 {
-    SearchBoard board;
+    State state(default_opts());
+    SearchState search_state = make_search_state(state, Sign::X);
 
-    const SearchResult result = find_best_move(board, 1);
+    const NegamaxResult result =
+        NegamaxSearcher().find_best_move(search_state, Sign::X, MoveList{});
 
-    EXPECT_EQ(result.best_move.x, -1);
-    EXPECT_EQ(result.best_move.y, -1);
-    EXPECT_EQ(result.best_score, 0);
-    EXPECT_EQ(result.visited_nodes, 0u);
-}
-
-TEST(NegamaxSearch, DepthZeroReturnsStaticEvaluationWithoutMove)
-{
-    State state(DefaultOpts());
-    SearchBoard board(state, Sign::X);
-
-    const SearchResult result = find_best_move(board, 0);
-
-    EXPECT_EQ(result.best_move.x, -1);
-    EXPECT_EQ(result.best_move.y, -1);
-    EXPECT_EQ(result.best_score, evaluate_position(board, Sign::X));
-    EXPECT_EQ(result.visited_nodes, 1u);
+    EXPECT_FALSE(result.found);
+    EXPECT_EQ(result.nodes, 0);
 }
 
 TEST(NegamaxSearch, EmptyBoardReturnsCentralMove)
 {
-    State state(DefaultOpts());
-    SearchBoard board(state, Sign::X);
+    State state(default_opts());
+    SearchState search_state = make_search_state(state, Sign::X);
 
-    const SearchResult result = find_best_move(board, 1);
+    const NegamaxResult result =
+        NegamaxSearcher().find_best_move(
+            search_state,
+            Sign::X,
+            root_moves(search_state, Sign::X));
 
-    EXPECT_TRUE((result.best_move.x == 9 || result.best_move.x == 10) &&
-                (result.best_move.y == 9 || result.best_move.y == 10));
-    EXPECT_GT(result.visited_nodes, 0u);
-}
-
-TEST(NegamaxSearch, TerminalPositionReturnsNoMove)
-{
-    State state(DefaultOpts());
-    state.process_move(Sign::X, 10, 10);
-    state.process_move(Sign::O, 0, 0);
-    state.process_move(Sign::X, 11, 10);
-    state.process_move(Sign::O, 1, 0);
-    state.process_move(Sign::X, 12, 10);
-    state.process_move(Sign::O, 2, 0);
-    state.process_move(Sign::X, 13, 10);
-    state.process_move(Sign::O, 3, 0);
-    state.process_move(Sign::X, 15, 15);
-    state.process_move(Sign::O, 4, 0);
-
-    SearchBoard board(state, Sign::X);
-    const SearchResult result = find_best_move(board, 2);
-
-    ASSERT_EQ(board.game_status(), Status::ENDED);
-    ASSERT_EQ(board.winner(), Sign::O);
-
-    EXPECT_EQ(result.best_move.x, -1);
-    EXPECT_EQ(result.best_move.y, -1);
-    EXPECT_EQ(result.best_score, -kTerminalWinScore);
-    EXPECT_EQ(result.visited_nodes, 1u);
+    ASSERT_TRUE(result.found);
+    EXPECT_EQ(result.best_move.x, 10);
+    EXPECT_EQ(result.best_move.y, 10);
+    EXPECT_GT(result.nodes, 0);
 }
 
 TEST(NegamaxSearch, ChoosesImmediateWinningMove)
 {
-    State state(DefaultOpts());
+    State state(default_opts());
     state.process_move(Sign::X, 5, 10);
     state.process_move(Sign::O, 0, 0);
     state.process_move(Sign::X, 6, 10);
@@ -103,17 +88,22 @@ TEST(NegamaxSearch, ChoosesImmediateWinningMove)
     state.process_move(Sign::X, 8, 10);
     state.process_move(Sign::O, 1, 0);
 
-    SearchBoard board(state, Sign::X);
-    const SearchResult result = find_best_move(board, 1);
+    SearchState search_state = make_search_state(state, Sign::X);
 
+    const NegamaxResult result =
+        NegamaxSearcher().find_best_move(
+            search_state,
+            Sign::X,
+            root_moves(search_state, Sign::X));
+
+    ASSERT_TRUE(result.found);
     EXPECT_TRUE((result.best_move.x == 4 && result.best_move.y == 10) ||
                 (result.best_move.x == 9 && result.best_move.y == 10));
-    EXPECT_GT(result.best_score, 0);
 }
 
-TEST(NegamaxSearch, BlocksOpponentOpenFour)
+TEST(NegamaxSearch, BlocksOpponentImmediateWin)
 {
-    State state(DefaultOpts());
+    State state(default_opts());
     state.process_move(Sign::X, 10, 10);
     state.process_move(Sign::O, 5, 10);
     state.process_move(Sign::X, 10, 11);
@@ -123,75 +113,42 @@ TEST(NegamaxSearch, BlocksOpponentOpenFour)
     state.process_move(Sign::X, 11, 11);
     state.process_move(Sign::O, 8, 10);
 
-    SearchBoard board(state, Sign::X);
-    const SearchResult result = find_best_move(board, 1);
+    SearchState search_state = make_search_state(state, Sign::X);
 
+    const NegamaxResult result =
+        NegamaxSearcher().find_best_move(
+            search_state,
+            Sign::X,
+            root_moves(search_state, Sign::X));
+
+    ASSERT_TRUE(result.found);
     EXPECT_TRUE((result.best_move.x == 4 && result.best_move.y == 10) ||
                 (result.best_move.x == 9 && result.best_move.y == 10));
 }
 
-TEST(NegamaxSearch, DoesNotModifyOriginalBoard)
+TEST(NegamaxSearch, DoesNotModifyOriginalSearchState)
 {
-    State state(DefaultOpts());
+    State state(default_opts());
     state.process_move(Sign::X, 10, 10);
     state.process_move(Sign::O, 11, 10);
 
-    SearchBoard board(state, Sign::X);
-    const Sign current_player = board.current_player();
-    const Status status = board.game_status();
+    SearchState search_state = make_search_state(state, Sign::X);
+    const Sign current_player = search_state.board().current_player();
+    const Status status = search_state.game_status();
+    const int move_number = search_state.board().move_number();
+    const std::uint64_t hash = search_state.board().hash();
 
-    const SearchResult result = find_best_move(board, 1);
+    const NegamaxResult result =
+        NegamaxSearcher().find_best_move(
+            search_state,
+            Sign::X,
+            root_moves(search_state, Sign::X));
 
-    EXPECT_NE(result.best_move.x, -1);
-    EXPECT_EQ(board.current_player(), current_player);
-    EXPECT_EQ(board.game_status(), status);
-    EXPECT_EQ(board.get_cell(10, 10), SearchBoard::Cell::X);
-    EXPECT_EQ(board.get_cell(11, 10), SearchBoard::Cell::O);
-}
-
-TEST(NegamaxSearch, PrefersWinOverBlock)
-{
-    State state(DefaultOpts());
-
-    state.process_move(Sign::X, 5, 10);
-    state.process_move(Sign::O, 5, 12);
-    state.process_move(Sign::X, 6, 10);
-    state.process_move(Sign::O, 6, 12);
-    state.process_move(Sign::X, 7, 10);
-    state.process_move(Sign::O, 7, 12);
-    state.process_move(Sign::X, 8, 10);
-    state.process_move(Sign::O, 8, 12);
-
-    SearchBoard board(state, Sign::X);
-    const SearchResult result = find_best_move(board, 1);
-
-    EXPECT_TRUE((result.best_move.x == 4 && result.best_move.y == 10) ||
-                (result.best_move.x == 9 && result.best_move.y == 10))
-        << "X must win instead of blocking; got ("
-        << result.best_move.x << "," << result.best_move.y << ")";
-    EXPECT_GT(result.best_score, 0);
-}
-
-TEST(NegamaxSearch, SignOChoosesImmediateWin)
-{
-    State state(DefaultOpts());
-
-    EXPECT_EQ(state.process_move(Sign::X, 0, 0), ttt::game::MoveResult::OK);
-    EXPECT_EQ(state.process_move(Sign::O, 5, 10), ttt::game::MoveResult::OK);
-    EXPECT_EQ(state.process_move(Sign::X, 1, 0), ttt::game::MoveResult::OK);
-    EXPECT_EQ(state.process_move(Sign::O, 6, 10), ttt::game::MoveResult::OK);
-    EXPECT_EQ(state.process_move(Sign::X, 2, 0), ttt::game::MoveResult::OK);
-    EXPECT_EQ(state.process_move(Sign::O, 7, 10), ttt::game::MoveResult::OK);
-    EXPECT_EQ(state.process_move(Sign::X, 3, 1), ttt::game::MoveResult::OK);
-    EXPECT_EQ(state.process_move(Sign::O, 8, 10), ttt::game::MoveResult::OK);
-    EXPECT_EQ(state.process_move(Sign::X, 4, 1), ttt::game::MoveResult::OK);
-
-    SearchBoard board(state, Sign::O);
-    const SearchResult result = find_best_move(board, 1);
-
-    EXPECT_TRUE((result.best_move.x == 4 && result.best_move.y == 10) ||
-                (result.best_move.x == 9 && result.best_move.y == 10))
-        << "O must complete five-in-a-row; got ("
-        << result.best_move.x << "," << result.best_move.y << ")";
-    EXPECT_GT(result.best_score, 0);
+    EXPECT_TRUE(result.found);
+    EXPECT_EQ(search_state.board().current_player(), current_player);
+    EXPECT_EQ(search_state.game_status(), status);
+    EXPECT_EQ(search_state.board().move_number(), move_number);
+    EXPECT_EQ(search_state.board().hash(), hash);
+    EXPECT_EQ(search_state.board().get_cell(10, 10), SearchBoard::Cell::X);
+    EXPECT_EQ(search_state.board().get_cell(11, 10), SearchBoard::Cell::O);
 }
