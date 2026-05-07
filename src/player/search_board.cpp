@@ -1,190 +1,227 @@
 #include "search_board.hpp"
+#include "zobrist.hpp"
 
 #include <cassert>
 
 namespace ttt::my_player
 {
 
-    /**
-     * @brief Создает внутреннюю поисковую доску из текущего состояния игры.
-     *
-     * @param state Состояние игры, полученное от движка.
-     * @param my_sign Знак, которым играет наш бот в этой партии.
-     */
-    SearchBoard::SearchBoard(const game::State &state, game::Sign my_sign)
+    SearchBoard::SearchBoard()
     {
-        load_from_state(state, my_sign);
+        reset_cells_with_walls();
     }
 
-    /**
-     * @brief Копирует данные из ttt::game::State во внутреннее представление бота.
-     *
-     * @param state Состояние игры, полученное от движка.
-     * @param my_sign Знак, которым играет наш бот.
-     *
-     * @note Метод синхронизирует
-     * базовое состояние доски и служебные поля.
-     */
     void SearchBoard::load_from_state(const game::State &state, game::Sign my_sign)
     {
+        reset_cells_with_walls();
+
         m_my_sign = my_sign;
-        m_opponent_sign = opposite_player_sign(my_sign);
+
         m_current_player = state.get_current_player();
         m_winner = state.get_winner();
         m_game_status = state.get_status();
+
         m_move_number = state.get_move_no();
         m_max_move_count = state.get_opts().max_moves;
 
-        int index = 0;
+        m_stone_count = 0;
+
         for (int y = 0; y < kBoardHeight; ++y)
         {
             for (int x = 0; x < kBoardWidth; ++x)
             {
-                m_cells[index++] = cell_from_game_sign(state.get_value(x, y));
+                const int index = to_index(x, y);
+                const Cell cell = cell_from_game_sign(state.get_value(x, y));
+
+                m_cells[index] = cell;
+
+                if (is_stone_cell(cell))
+                {
+                    add_stone_index(index);
+                }
+            }
+        }
+
+        m_hash = 0;
+
+        const Zobrist &zobrist = Zobrist::instance();
+
+        for (int index = 0; index < kPaddedCellCount; ++index)
+        {
+            const Cell cell = m_cells[index];
+
+            if (cell == Cell::X || cell == Cell::O)
+            {
+                m_hash ^= zobrist.cell_key(index, cell);
+            }
+        }
+
+        m_hash ^= zobrist.current_player_key(m_current_player);
+        m_hash ^= zobrist.status_key(m_game_status);
+        m_hash ^= zobrist.winner_key(m_winner);
+    }
+
+    void SearchBoard::reset_cells_with_walls() noexcept
+    {
+        m_cells.fill(Cell::WALL);
+
+        for (int y = 0; y < kBoardHeight; ++y)
+        {
+            for (int x = 0; x < kBoardWidth; ++x)
+            {
+                m_cells[to_index(x, y)] = Cell::EMPTY;
             }
         }
     }
 
-    /**
-     * @brief Возвращает содержимое клетки.
-     *
-     * @param x Координата столбца.
-     * @param y Координата строки.
-     * @return Cell Значение клетки на доске.
-     *
-     * @note Выход за границы трактуется как WALL.
-     */
-    /**
-     * @brief Применяет ход к внутренней доске и сохраняет данные для отката.
-     *
-     * @param x Координата столбца.
-     * @param y Координата строки.
-     * @param sign Знак игрока, который делает ход.
-     * @return UndoInfo Снимок состояния, достаточный для undo_move (отмены хода).
-     *
-     * @note Сейчас метод обновляет только базовое состояние доски и очередь
-     * хода.
-     */
-    SearchBoard::UndoInfo SearchBoard::apply_move(int x, int y, game::Sign sign)
+    SearchBoard::Cell SearchBoard::get_cell(int x, int y) const noexcept
     {
+        if (!is_within_board(x, y))
+        {
+            return Cell::WALL;
+        }
+
+        return m_cells[to_index(x, y)];
+    }
+
+    SearchBoard::UndoInfo SearchBoard::apply_move(int x, int y, game::Sign sign) noexcept
+    {
+        assert(is_within_board(x, y));
+        assert(sign == game::Sign::X || sign == game::Sign::O);
+
+        const int index = to_index(x, y);
+        const Cell moved_cell = cell_from_game_sign(sign);
+
+        assert(m_cells[index] == Cell::EMPTY);
+
         UndoInfo undo;
-        undo.x = x;
-        undo.y = y;
-        undo.previous_cell = get_cell(x, y);
-        undo.previous_move_number = m_move_number;
-        undo.previous_max_move_count = m_max_move_count;
+        undo.index = static_cast<std::uint16_t>(index);
         undo.previous_current_player = m_current_player;
         undo.previous_game_status = m_game_status;
         undo.previous_winner = m_winner;
 
-        assert(is_within_board(x, y));
-        assert(undo.previous_cell == Cell::EMPTY);
+        const Zobrist &zobrist = Zobrist::instance();
 
-        set_cell(x, y, cell_from_game_sign(sign));
+        m_hash ^= zobrist.current_player_key(m_current_player);
+        m_hash ^= zobrist.status_key(m_game_status);
+        m_hash ^= zobrist.winner_key(m_winner);
+
+        m_cells[index] = moved_cell;
+        m_hash ^= zobrist.cell_key(index, moved_cell);
+
+        add_stone_index(index);
+
         ++m_move_number;
+
         m_current_player = opposite_player_sign(sign);
-        update_game_status_after_move(x, y, sign);
+
+        update_game_status_after_move(index, moved_cell);
+
+        m_hash ^= zobrist.current_player_key(m_current_player);
+        m_hash ^= zobrist.status_key(m_game_status);
+        m_hash ^= zobrist.winner_key(m_winner);
 
         return undo;
     }
 
-    /**
-     * @brief Откатывает один ранее примененный ход вместе со всей служебной
-     * информацией.
-     *
-     * @param undo Данные, возвращенные методом apply_move.
-     */
-    void SearchBoard::undo_move(const UndoInfo &undo)
+    void SearchBoard::undo_move(const UndoInfo &undo) noexcept
     {
-        assert(is_within_board(undo.x, undo.y));
+        const int index = undo.index;
 
-        m_cells[to_linear_index(undo.x, undo.y)] = undo.previous_cell;
-        m_move_number = undo.previous_move_number;
-        m_max_move_count = undo.previous_max_move_count;
+        assert(index >= 0);
+        assert(index < kPaddedCellCount);
+        assert(is_stone_cell(m_cells[index]));
+
+        const Zobrist &zobrist = Zobrist::instance();
+        const Cell moved_cell = m_cells[index];
+
+        m_hash ^= zobrist.current_player_key(m_current_player);
+        m_hash ^= zobrist.status_key(m_game_status);
+        m_hash ^= zobrist.winner_key(m_winner);
+
+        m_hash ^= zobrist.cell_key(index, moved_cell);
+        m_cells[index] = Cell::EMPTY;
+
+        assert(m_stone_count > 0);
+        assert(m_stone_indices[m_stone_count - 1] == undo.index);
+
+        --m_stone_count;
+        --m_move_number;
+
         m_current_player = undo.previous_current_player;
         m_game_status = undo.previous_game_status;
         m_winner = undo.previous_winner;
+
+        m_hash ^= zobrist.current_player_key(m_current_player);
+        m_hash ^= zobrist.status_key(m_game_status);
+        m_hash ^= zobrist.winner_key(m_winner);
     }
 
-    /**
-     * @brief Преобразует знак движка в тип клетки внутренней доски.
-     *
-     * @param sign Знак из ttt::game::Sign.
-     * @return Cell значение внутреннего enum Cell.
-     */
-    /**
-     * @brief Считает длину непрерывной цепочки камней в одном направлении.
-     *
-     * @param start_x координата x последнего хода
-     * @param start_y координата y последнего хода
-     * @param dx смещение по x для одного шага
-     * @param dy смещение по y для одного шага
-     * @param target_cell тип клетки, которую нужно посчитать
-     *
-     * @return количество подряд идущих клеток типа target_cell в одном направлении.
-     *
-     * @note стартовая клетка не включается в подсчет.
-     */
-    int SearchBoard::count_stones_in_direction(int start_x, int start_y, int dx, int dy, Cell target_cell) const
+    SearchBoard::Cell SearchBoard::cell_from_game_sign(game::Sign sign) noexcept
+    {
+        switch (sign)
+        {
+        case game::Sign::X:
+            return Cell::X;
+        case game::Sign::O:
+            return Cell::O;
+        case game::Sign::WALL:
+            return Cell::WALL;
+        case game::Sign::NONE:
+        default:
+            return Cell::EMPTY;
+        }
+    }
+
+    game::Sign SearchBoard::opposite_player_sign(game::Sign sign) noexcept
+    {
+        switch (sign)
+        {
+        case game::Sign::X:
+            return game::Sign::O;
+        case game::Sign::O:
+            return game::Sign::X;
+        default:
+            return game::Sign::NONE;
+        }
+    }
+
+    void SearchBoard::add_stone_index(int index) noexcept
+    {
+        assert(m_stone_count >= 0);
+        assert(m_stone_count < kBoardCellCount);
+
+        m_stone_indices[m_stone_count] = static_cast<std::uint16_t>(index);
+        ++m_stone_count;
+    }
+
+    int SearchBoard::count_stones_in_direction(
+        int start_index,
+        int step,
+        Cell target_cell) const noexcept
     {
         int count = 0;
-        int x = start_x + dx;
-        int y = start_y + dy;
+        int index = start_index + step;
 
-        while (is_within_board(x, y) && m_cells[to_linear_index(x, y)] == target_cell)
+        while (m_cells[index] == target_cell)
         {
             ++count;
-            x += dx;
-            y += dy;
+            index += step;
         }
 
         return count;
     }
 
-    /**
-     * @brief Проверяет, создает ли последний ход линии длины 5.
-     *
-     * @param x координата x последнего хода
-     * @param y координата y последнего хода
-     * @param sign знак игрока, который только что сделал ход
-     *
-     * @return true - через последний ход создается линия длины 5
-     *         false - через последний ход нет линии длины 5.
-     */
-    bool SearchBoard::has_five_from(int x, int y, game::Sign sign) const
+    bool SearchBoard::has_five_from_index(int index, Cell target_cell) const noexcept
     {
-        const Cell target_cell = cell_from_game_sign(sign);
+        assert(is_stone_cell(target_cell));
 
-        if (!is_within_board(x, y))
+        for (const int step : kDirections)
         {
-            return false;
-        }
-
-        if (target_cell != Cell::X && target_cell != Cell::O)
-        {
-            return false;
-        }
-
-        if (get_cell(x, y) != target_cell)
-        {
-            return false;
-        }
-
-        static constexpr int directions[4][2] = {
-            {1, 0},
-            {0, 1},
-            {1, 1},
-            {1, -1},
-        };
-
-        for (const auto &direction : directions)
-        {
-            const int dx = direction[0];
-            const int dy = direction[1];
-
             const int total_length =
-                1 + count_stones_in_direction(x, y, dx, dy, target_cell) +
-                count_stones_in_direction(x, y, -dx, -dy, target_cell);
+                1 +
+                count_stones_in_direction(index, step, target_cell) +
+                count_stones_in_direction(index, -step, target_cell);
 
             if (total_length >= kWinLength)
             {
@@ -195,19 +232,11 @@ namespace ttt::my_player
         return false;
     }
 
-    /**
-     * @brief Обновляет состояние партии после уже примененного хода.
-     *
-     * @param x Координата x последнего хода
-     * @param y Координата y последнего хода
-     * @param sign Знак игрока, который только что сходил
-     *
-     * @note Метод повторяет логику ttt::game::State::process_move
-     * для внутреннего поискового представления.
-     */
-    void SearchBoard::update_game_status_after_move(int x, int y, game::Sign sign)
+    void SearchBoard::update_game_status_after_move(int index, Cell moved_cell) noexcept
     {
-        const bool winning_move = has_five_from(x, y, sign);
+        assert(is_stone_cell(moved_cell));
+
+        const bool winning_move = has_five_from_index(index, moved_cell);
 
         if (m_game_status == game::Status::LAST_MOVE)
         {
@@ -237,7 +266,7 @@ namespace ttt::my_player
                 return;
             }
 
-            if (m_move_number >= m_max_move_count)
+            if (has_move_limit() && m_move_number >= m_max_move_count)
             {
                 m_game_status = game::Status::ENDED;
                 m_winner = opposite_player_sign(m_current_player);
@@ -248,11 +277,11 @@ namespace ttt::my_player
             return;
         }
 
-        if (m_move_number >= m_max_move_count)
+        if (has_move_limit() && m_move_number >= m_max_move_count)
         {
             m_game_status = game::Status::ENDED;
             m_winner = game::Sign::NONE;
         }
     }
 
-} // namespace ttt::my_player
+}
