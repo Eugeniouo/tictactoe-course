@@ -1,3 +1,11 @@
+/**
+ * @file engine_config.hpp
+ * @brief Общие числовые настройки поискового движка
+ *
+ * Заданы размеры доски, длина победной линии, глубина и лимиты поиска,
+ * радиус генерации кандидатов, веса угроз и бонусы для разных классов ходов.
+ */
+
 #pragma once
 
 #include <array>
@@ -48,7 +56,7 @@ namespace ttt::my_player
         static constexpr Score kStrongDefenseTierBonus = 20'000'000LL;
         static constexpr Score kStrongAttackTierBonus = 250'000'000LL;
 
-        // Вес уже существующей угрозы в одном направлении
+        // Вес уже существующей угрозы в одном направлении.
         inline static constexpr std::array<Score, 9> kDirectionThreatWeights = {
             0,         // NONE
             30,        // OPEN_TWO
@@ -61,7 +69,7 @@ namespace ttt::my_player
             100000000, // FIVE
         };
 
-        // Вес потенциального хода по его классу
+        // Вес потенциального хода по его классу.
         inline static constexpr std::array<Score, 12> kMoveClassWeights = {
             0,         // QUIET
             40,        // OPEN_TWO

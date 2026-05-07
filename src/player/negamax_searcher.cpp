@@ -1,3 +1,13 @@
+/**
+ * @file negamax_searcher.cpp
+ * @brief Реализация negamax-поиска с PVS отсечением
+ *
+ * Файл перебирает корневые ходы с итеративным углублением, использует principal
+ * variation search, quiescence search для острых позиций и таблицу транспозиций.
+ * Ходы применяются к SearchState и затем откатываются.
+ *
+ */
+
 #include "negamax_searcher.hpp"
 
 #include <algorithm>
