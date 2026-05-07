@@ -1,8 +1,8 @@
 build/*
 build-wsl/*
+build-wsl-release/*
 .cache/*
 **/.DS_Store
 libs/lib*
 .vscode/
 Testing/
-

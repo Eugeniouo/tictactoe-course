@@ -46,16 +46,18 @@ endif()
 include_directories(src)
 
 # NOTE: add source files for your players here
-set(player_src
-  src/player/my_player.cpp
+set(player_src 
+  src/player/my_player.cpp 
   src/player/my_observer.cpp
+  src/player/incremental_evaluator.cpp
+  src/player/pattern_table.cpp
   src/player/search_board.cpp
+  src/player/zobrist.cpp
+  src/player/search_state.cpp
   src/player/move_generator.cpp
-  src/player/instant_move_checker.cpp
-  src/player/position_evaluator.cpp
-  src/player/negamax_search.cpp
-  src/player/move_ordering.cpp
+  src/player/negamax_searcher.cpp
 )
+
 add_library(tttplayer STATIC ${player_src})
 target_link_libraries(tttplayer ${TTTCORE_LIB})
 
