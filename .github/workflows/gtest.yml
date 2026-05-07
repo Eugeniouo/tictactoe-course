@@ -1,0 +1,39 @@
+name: GTest
+
+on:
+  push:
+    branches: [master, dev]
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  gtest:
+    name: Linux GTest
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
+      
+      - name: Configure
+        run cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build gtest only
+        run: |
+          cmake --build build --target \
+            test_search_board \
+            test_move_generator \
+            test_incremental_evaluator \
+            test_negamax_search \
+            --parallel
+      
+      - name: Run gtests only
+        run: |
+          ctest --test-dir build \
+            -R "^(test_search_board|test_move_generator|test_incremental_evaluator|test_negamax_search)$" \
+            --output-on-failure

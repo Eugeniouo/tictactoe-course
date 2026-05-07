@@ -14,6 +14,8 @@ if(NOT TARGET GTest::gtest_main)
   FetchContent_MakeAvailable(googletest)
 endif()
 
+include(GoogleTest)
+
 # Always built targets (no dependency on BUILD_TTTCORE)
 add_executable(test_my_player test_my_player.cpp)
 target_link_libraries(test_my_player tttplayer)
@@ -25,19 +27,19 @@ add_test(NAME test_player_stats COMMAND ./test_stats)
 
 add_executable(test_search_board test_search_board.cpp)
 target_link_libraries(test_search_board tttplayer GTest::gtest_main)
-add_test(NAME test_search_board COMMAND test_search_board)
+gtest_discover_tests(test_search_board)
 
 add_executable(test_move_generator test_move_generator.cpp)
 target_link_libraries(test_move_generator tttplayer GTest::gtest_main)
-add_test(NAME test_move_generator COMMAND test_move_generator)
+gtest_discover_tests(test_move_generator)
 
 add_executable(test_incremental_evaluator test_incremental_evaluator.cpp)
 target_link_libraries(test_incremental_evaluator tttplayer GTest::gtest_main)
-add_test(NAME test_incremental_evaluator COMMAND test_incremental_evaluator)
+gtest_discover_tests(test_incremental_evaluator)
 
 add_executable(test_negamax_search test_negamax_search.cpp)
 target_link_libraries(test_negamax_search tttplayer GTest::gtest_main)
-add_test(NAME test_negamax_search COMMAND test_negamax_search)
+gtest_discover_tests(test_negamax_search)
 
 # Targets that require full or prebuilt tttcore
 if((BUILD_TTTCORE STREQUAL "FULL") OR (BUILD_TTTCORE STREQUAL "PREBUILT"))
