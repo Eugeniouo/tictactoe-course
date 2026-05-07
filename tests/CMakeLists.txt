@@ -31,21 +31,13 @@ add_executable(test_move_generator test_move_generator.cpp)
 target_link_libraries(test_move_generator tttplayer GTest::gtest_main)
 add_test(NAME test_move_generator COMMAND test_move_generator)
 
-add_executable(test_position_evaluator test_position_evaluator.cpp)
-target_link_libraries(test_position_evaluator tttplayer GTest::gtest_main)
-add_test(NAME test_position_evaluator COMMAND test_position_evaluator)
+add_executable(test_incremental_evaluator test_incremental_evaluator.cpp)
+target_link_libraries(test_incremental_evaluator tttplayer GTest::gtest_main)
+add_test(NAME test_incremental_evaluator COMMAND test_incremental_evaluator)
 
 add_executable(test_negamax_search test_negamax_search.cpp)
 target_link_libraries(test_negamax_search tttplayer GTest::gtest_main)
 add_test(NAME test_negamax_search COMMAND test_negamax_search)
-
-add_executable(test_instant_move_checker test_instant_move_checker.cpp)
-target_link_libraries(test_instant_move_checker tttplayer GTest::gtest_main)
-add_test(NAME test_instant_move_checker COMMAND test_instant_move_checker)
-
-add_executable(test_move_ordering test_move_ordering.cpp)
-target_link_libraries(test_move_ordering tttplayer GTest::gtest_main)
-add_test(NAME test_move_ordering COMMAND test_move_ordering)
 
 # Targets that require full or prebuilt tttcore
 if((BUILD_TTTCORE STREQUAL "FULL") OR (BUILD_TTTCORE STREQUAL "PREBUILT"))
