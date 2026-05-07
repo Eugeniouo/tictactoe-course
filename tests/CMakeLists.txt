@@ -1,5 +1,21 @@
 cmake_minimum_required(VERSION 3.20.0)
 
+include(FetchContent)
+
+if(NOT TARGET GTest::gtest_main)
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+  FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP FALSE
+  )
+
+  FetchContent_MakeAvailable(googletest)
+endif()
+
+include(GoogleTest)
+
 # Always built targets (no dependency on BUILD_TTTCORE)
 add_executable(test_my_player test_my_player.cpp)
 target_link_libraries(test_my_player tttplayer)
@@ -8,6 +24,22 @@ add_test(NAME smoke_test_player COMMAND ./test_my_player)
 add_executable(test_stats test_stats.cpp)
 target_link_libraries(test_stats tttplayer)
 add_test(NAME test_player_stats COMMAND ./test_stats)
+
+add_executable(test_search_board test_search_board.cpp)
+target_link_libraries(test_search_board tttplayer GTest::gtest_main)
+gtest_discover_tests(test_search_board)
+
+add_executable(test_move_generator test_move_generator.cpp)
+target_link_libraries(test_move_generator tttplayer GTest::gtest_main)
+gtest_discover_tests(test_move_generator)
+
+add_executable(test_incremental_evaluator test_incremental_evaluator.cpp)
+target_link_libraries(test_incremental_evaluator tttplayer GTest::gtest_main)
+gtest_discover_tests(test_incremental_evaluator)
+
+add_executable(test_negamax_search test_negamax_search.cpp)
+target_link_libraries(test_negamax_search tttplayer GTest::gtest_main)
+gtest_discover_tests(test_negamax_search)
 
 # Targets that require full or prebuilt tttcore
 if((BUILD_TTTCORE STREQUAL "FULL") OR (BUILD_TTTCORE STREQUAL "PREBUILT"))
